@@ -14,6 +14,7 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import Animation from "../components/animation";
 import { useSound } from '../helpers/SoundContext';
 import { textToSpeech } from '../helpers/textToSpeech';
+import { textToSpeech2 } from '../helpers/textToSpeech2';
 import DialogBox from "../components/dialogBox";
 import {handleInteraction, handleNextClickTouchData} from '../helpers/imageTouchData';
 import { saveAnswers } from "../helpers/SaveAnswers";
@@ -50,6 +51,11 @@ const GamePage = () => {
   // state to count the number of cookies clicked
   const [count, setCount] = useState(0);
 
+  // State to hold any errors
+  const [error, setError] = useState(null);
+  // State to hold the generated audio URL
+  const [audioUrl, setAudioUrl] = useState(null);
+
   // state to store the id's of cookies clicked
   const clickedCookies = useRef(new Set());
 
@@ -83,7 +89,9 @@ const GamePage = () => {
 
               if (soundEnabled) {
               const utterance = `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green or purple?`;
-              textToSpeech(utterance);
+              //textToSpeech(utterance);
+              textToSpeech2(utterance, setAudioUrl, setError);
+
               }
               spokenRef2.current = true;
             }, 1000);
@@ -98,12 +106,33 @@ const GamePage = () => {
     const utterance = `Cookie Monster has ${Data.pages[currentPage].cookies.length} cookies. Let's count together!`;
 
     setTimeout(() => {
-      textToSpeech(utterance, () => {
-        setActiveCookieId(1)
-      })
+      // textToSpeech(utterance, () => {
+      //   setActiveCookieId(1)
+      // })
+      textToSpeech2(utterance, setAudioUrl, setError);
     }, 1000);
   }
   };
+
+  // Play audio when audioUrl changes
+  useEffect(() => {
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audio.play();
+      
+      audio.onended = () => {
+        setActiveCookieId(1);
+        // Clean up the URL when done
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      };
+      
+      audio.onerror = () => {
+        console.error('Audio playback error');
+        setError('Failed to play audio');
+      };
+    }
+  }, [audioUrl]);
 
   // track user inactivity
   const trackInactivity = useCallback(() => {
@@ -188,6 +217,8 @@ const GamePage = () => {
     
   }, [startAnimation]);
 
+  
+
   const message = showMessage
   ? `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green or purple?`
   : `Cookie Monster has ${Data.pages[currentPage].cookies.length} cookies. Let's count together!`;
@@ -248,19 +279,23 @@ const GamePage = () => {
     setSelectedTray(trayType);
     // if the correct tray has been clicked
     if (trayType === "greenTray" && Data.pages[currentPage].greenTray[0].biscuits.length === Data.pages[currentPage].cookies.length) {
-      textToSpeech("Green is correct, Good job!");
+      //textToSpeech("Green is correct, Good job!");
+      textToSpeech2("Green is correct, Good job!", setAudioUrl, setError);
     }
     else if (trayType === "purpleTray" && Data.pages[currentPage].purpleTray[0].biscuits.length === Data.pages[currentPage].cookies.length){
-      textToSpeech("Purple is correct, Well done!");
+      //textToSpeech("Purple is correct, Well done!");
+      textToSpeech2("Purple is correct, Well done!", setAudioUrl, setError);
     }
     // if the wrong tray has been clicked
     else if (trayType === "greenTray" && Data.pages[currentPage].greenTray[0].biscuits.length !== Data.pages[currentPage].cookies.length) {
       const explanation = `No, ${trayType} has ${Data.pages[currentPage].greenTray[0].biscuits.length} cookies. Try again!`;
-      textToSpeech(explanation);
+      //textToSpeech(explanation);
+      textToSpeech2(explanation, setAudioUrl, setError);
     }
     else{
       const explanation = `Wrong answer, ${trayType} has ${Data.pages[currentPage].purpleTray[0].biscuits.length} cookies. Try again!`;
-      textToSpeech(explanation);
+      //textToSpeech(explanation);
+      textToSpeech2(explanation, setAudioUrl, setError);
     }
     storeAnswer(currentPage, trayType);
 
@@ -277,7 +312,8 @@ const GamePage = () => {
         setCount(prevCount => {
             const newCount = prevCount + 1;
             // real time update of the cookie count
-            textToSpeech(`${newCount}`);
+            //textToSpeech(`${newCount}`);
+            textToSpeech2(`${newCount}`, setAudioUrl, setError);
             setActiveCookieId(cookieId);
             // if all the cookies have been clicked, show the animation
             if (newCount === totalCount) {
@@ -285,7 +321,8 @@ const GamePage = () => {
               setstartAnimation(true);
               const instruction = `Great job! Now draw a circle with your finger by following the yellow line.`;
               setTimeout(() => {
-                textToSpeech(instruction);
+                //textToSpeech(instruction);
+                textToSpeech2(instruction, setAudioUrl, setError);
               }, 1000);
             }
             return newCount;

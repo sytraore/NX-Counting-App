@@ -14,7 +14,7 @@ function AnimationNoCircle({ onAnimationFinish }) {
       } else { // clear interval when animation is finished
         clearInterval(interval);
         setTimeout(() => {
-          setAnimationFinished(true);
+          //setAnimationFinished(true);
           onAnimationFinish(); 
         }, 1000);
       }

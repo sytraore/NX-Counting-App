@@ -12,6 +12,10 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Writer } from 'wav';
+import { PassThrough } from 'stream';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
 //import { config } from 'dotenv'; // might move it before importing the db.js file
 
 // change from apps/backend/.env.local to .env.local to enable environment variables to be loaded on server
@@ -25,6 +29,7 @@ const PORT = process.env.REACT_APP_PORT || 5000;
 console.log(PORT);
 
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const keyPath = process.env.KEYPATH;
 const certPath = process.env.CERTPATH;
 
@@ -39,6 +44,9 @@ const User = mongoose.model("UserInfo");
 const UserTouchDetails = mongoose.model("TouchDetails");
 const UserTrainingTouchDetails = mongoose.model("TrainingTouchDetails");
 const UserPracticeTouchDetails = mongoose.model("PracticeTouchDetails");
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-tts" });
 
 app.post("/register", async (req, res) => {
     const { name } = req.body;
@@ -251,6 +259,89 @@ app.post("/register", async (req, res) => {
         res.status(500).json({ message: error.toString() });
     }
 });
+
+// Gemini TTS API
+app.post('/speak', async(req, res) => {
+  if (!req.body.text) {
+    return res.status(400).send('No text provided!');
+  }
+
+  console.log('TTS Request received:', req.body.text);
+
+  try {
+    console.log('Calling Gemini TTS API...');
+    const response = await model.generateContent({
+      contents: [{parts: [{text: "Read like a preschooler's teacher: " + req.body.text}] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {voiceName: 'Leda'},
+          },
+        },
+      },
+    });
+
+    const result = response.response;
+
+    //console.log('TTS API Response received:', JSON.stringify(response, null, 2));
+    console.log('TTS API Response status:', response.status);
+    
+    const data = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+    // Check if audio data is present
+    if (!data) {
+      console.log('Failed to find audio data in the response:', result);
+      return res.status(500).send('API did not return audio data.');
+    }
+
+    // Log the length of the audio data for debugging
+    console.log('Audio data found, length:', data.length);
+
+    // Convert the base64 data to a Buffer
+    // audioBuffer is raw PCM data
+    const audioBuffer = Buffer.from(data, 'base64');
+
+    // 1. Set the Content-Type to audio/wav
+    // the audio data is in raw PCM format, so we need to convert it to WAV
+    // because browsers expect a proper audio format with headers
+    res.setHeader('Content-Type', 'audio/wav');
+
+    // 2. Create a PassThrough stream to pipe the data
+    // because the wav Writer expects a stream
+    // we can't just send the buffer directly
+    // we need to convert it to a stream first
+    // so we use PassThrough which is a type of stream that just passes data through
+    // without any transformation
+    // this allows us to pipe the raw PCM data into the wav Writer
+    // which will add the necessary WAV headers
+    // and then pipe the resulting WAV data to the response
+    // so the client receives a proper WAV file
+    // instead of just raw PCM data
+    // which browsers can't play directly
+    // This is a common pattern when dealing with audio data in Node.js
+    const passthrough = new PassThrough();
+
+    // 3. Create a WAV writer that will add the header
+    const wavWriter = new Writer({
+      sampleRate: 24000, // This must match the API's output sample rate
+      bitDepth: 16,
+      channels: 1
+    });
+
+    // 4. Pipe the raw PCM data through the WAV writer, and then to the response
+    passthrough.pipe(wavWriter).pipe(res);
+
+    // 5. Write the audio buffer to the passthrough stream
+    passthrough.end(audioBuffer);
+    
+  }
+  catch (error) {
+    console.error('TTS Error:', error);
+    res.status(500).send('Error generating speech');
+  }
+})
+
 
 // Serve static files from the React app (after all API routes)
 // use process.cwd() to get the current working directory
