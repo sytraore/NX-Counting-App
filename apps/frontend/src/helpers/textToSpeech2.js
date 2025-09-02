@@ -1,6 +1,8 @@
+let currentAudio = null;
+
 // Function to convert text to speech using the backend
 // this will handle timeouts, errors, response processing and setting the audio URL
-export const textToSpeech2 = async (utterance, setAudioUrl, setError) => {
+export const textToSpeech2 = async (utterance, onSpeechEnd) => {
     try {
       // Create an AbortController for timeout
       const controller = new AbortController();
@@ -31,15 +33,57 @@ export const textToSpeech2 = async (utterance, setAudioUrl, setError) => {
       
       // Create a URL for the audio blob that can be used in an audio element
       const audioUrl = URL.createObjectURL(audioBlob);
-      setAudioUrl(audioUrl);
-  
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        console.error('Request timed out after 30 seconds');
-        setError("Request timed out. The TTS service might be slow. Please try again.");
-      } else {
-        console.error('Error converting text to speech:', err);
-        setError("Failed to convert text to speech. Please try again.");
+
+      // Stop any currently playing audio
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
       }
+
+      const audio = new Audio(audioUrl);
+      currentAudio = audio;
+      
+      // Set up event listeners
+        audio.addEventListener('error', (e) => {
+            console.error('Audio element error:', e);
+            currentAudio = null;
+            // Clean up
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl);
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            currentAudio = null;
+            if (typeof onSpeechEnd === 'function') {
+                onSpeechEnd();
+            }
+            // Clean up
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl);
+            }
+        });
+
+      try {
+        await audio.play();
+        console.log('Playback started successfully');
+      } catch (playError) {
+        console.error('Playback failed.', playError);
+        // Clean up on play error
+        if (audioUrl) {
+            URL.revokeObjectURL(audioUrl);
+        }
+      }
+
+    } catch (err) {
+        // Clean up
+        if (audioUrl) {
+            URL.revokeObjectURL(audioUrl);
+        }
+        if (err.name === 'AbortError') {
+            console.error('Request timed out after 30 seconds');
+        } else {
+            console.error('Error converting text to speech:', err);
+        }
     }
 };
