@@ -230,48 +230,170 @@ app.post("/register", async (req, res) => {
   // });
 
 
-  app.post('/speech/synthesize', async (req, res) => {
+// In-memory TTS cache
+const audios = new Map();
+let cacheStats = { hits: 0, misses: 0, total: 0 };
+
+// Generic preloader that accepts an array of items (numbers, sentences, etc.)
+const preloadedAudios = async (items, itemType = 'items') => {
+  const startTime = Date.now();
+  console.log(`Starting TTS cache preload for ${itemType}...`);
+
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
     try {
-      const {text} = req.body;
-      
-      const  voice = {languageCode: 'en-US', name :'en-US-Neural2-G' };
-      const request = {
-          input: { text: text},
-          voice: voice,
-          audioConfig: { audioEncoding: 'MP3' },
-        };
-      
-      // debugging
-      console.log("Received request for text-to-speech synthesis:", request);
-
-      const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+      const response = await model.generateContent({
+        contents: [{ parts: [{ text: "Read in a calm and soothing tone: " + item }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Leda' },
             },
-            body: JSON.stringify(request),
-        });
+          },
+        },
+      });
 
-      const data = await response.json();
-        res.json(data);
+      const result = response.response;
+      const data = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+      if (!data) {
+        failureCount++;
+        console.log(`❌ Failed to cache ${item} (no audio data)`);
+        continue;
+      }
+
+      const audioBuffer = Buffer.from(data, 'base64');
+      audios.set(item, audioBuffer);
+      successCount++;
+      console.log(`✅ Cached ${item}`);
     } catch (error) {
-        console.error('Server Error in Google Text-to-Speech:', error);
-        res.status(500).json({ message: error.toString() });
+      failureCount++;
+      console.log(`❌ Failed to cache ${item}:`, error);
     }
-});
 
-// Gemini TTS API
+    // Small delay between calls to reduce back-to-back failures on preview model
+    if (i < items.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+
+  const duration = Date.now() - startTime;
+  console.log(`🎯 Preload for ${itemType} completed in ${duration}ms (success: ${successCount}/${items.length}, failed: ${failureCount}/${items.length})`);
+};
+
+
+//   app.post('/speech/synthesize', async (req, res) => {
+//     try {
+//       const {text} = req.body;
+      
+//       const  voice = {languageCode: 'en-US', name :'en-US-Neural2-G' };
+//       const request = {
+//           input: { text: text},
+//           voice: voice,
+//           audioConfig: { audioEncoding: 'MP3' },
+//         };
+      
+//       // debugging
+//       console.log("Received request for text-to-speech synthesis:", request);
+
+//       const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify(request),
+//         });
+
+//       const data = await response.json();
+//         res.json(data);
+//     } catch (error) {
+//         console.error('Server Error in Google Text-to-Speech:', error);
+//         res.status(500).json({ message: error.toString() });
+//     }
+// });
+
+// Preload both arrays in parallel
+const preloadAll = async () => {
+  const startTime = Date.now();
+  console.log(' Starting TTS cache preload...');
+
+  const numbers = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  const sentences = [
+    "Hello! Do you know who this is? That's right! It's Cookie Monster! What color is Cookie Monster? Blue! And here is Cookie Monster's blue tray.",
+    "Cookie Monster has 5 cookies. Let's count together!",
+    "Cookie Monster has 10 cookies. Let's count together!",
+    "Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green or purple?",
+    "Purple is correct, Well done!",
+    "Green is correct, Well done!",
+    "Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green or purple?",
+    "Great job! Now draw a circle with your finger by following the yellow line."
+  ];
+
+  //Preload sentences
+  preloadedAudios(sentences, 'sentences');
+  //wait for 4 seconds
+  await new Promise((resolve) => setTimeout(resolve, 4000));
+  // Preload numbers
+   preloadedAudios(numbers, 'numbers');
+  
+
+  const endTime = Date.now();
+  const totalDuration = endTime - startTime;
+  console.log(`🎯 Preloading completed in ${totalDuration}ms`);
+};
+
+// preload all at server start
+preloadAll();
+
+
+// convert a number to a word
+// return the input if it is not a number
+const numberToWord = (input) => {
+  const numberMap = {
+    '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five',
+    '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten'
+  };
+  
+  return numberMap[input] || input;
+};
+
+
+// Gemini TTS API endpoint
 app.post('/speak', async(req, res) => {
   if (!req.body.text) {
     return res.status(400).send('No text provided!');
   }
 
-  console.log('TTS Request received:', req.body.text);
+  // Convert number to words because the request is a number in string format
+  // and the TTS API expects a word to work properly when reading a sequence of numbers
+  const inputText = numberToWord(String(req.body.text));
+  console.log('TTS Request received:', inputText);
+
+  // check the cache first
+  if (audios.has(inputText)) {
+    cacheStats.hits++; cacheStats.total++;
+    console.log(`🎯 Cache HIT for: ${inputText}`);
+    const cachedAudio = audios.get(inputText);
+    res.setHeader('Content-Type', 'audio/wav');
+    const passthrough = new PassThrough();
+    const wavWriter = new Writer({ sampleRate: 24000, bitDepth: 16, channels: 1 });
+    passthrough.pipe(wavWriter).pipe(res);
+    passthrough.end(cachedAudio);
+    return;
+  }
+
+  // request is not in the cache, call the TTS API
+  console.log(`❌ Cache MISS for: ${inputText}`);
+  cacheStats.misses++; cacheStats.total++;
 
   try {
     console.log('Calling Gemini TTS API...');
     const response = await model.generateContent({
-      contents: [{parts: [{text: "Read like a preschooler's teacher: " + req.body.text}] }],
+      contents: [{parts: [{text: "Read in a calm and soothing tone: " + inputText}] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -284,7 +406,6 @@ app.post('/speak', async(req, res) => {
 
     const result = response.response;
 
-    //console.log('TTS API Response received:', JSON.stringify(response, null, 2));
     console.log('TTS API Response status:', response.status);
     
     const data = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
@@ -301,6 +422,8 @@ app.post('/speak', async(req, res) => {
     // Convert the base64 data to a Buffer
     // audioBuffer is raw PCM data
     const audioBuffer = Buffer.from(data, 'base64');
+    // Cache for future requests
+    audios.set(inputText, audioBuffer);
 
     // 1. Set the Content-Type to audio/wav
     // the audio data is in raw PCM format, so we need to convert it to WAV
