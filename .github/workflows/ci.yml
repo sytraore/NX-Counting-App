@@ -41,4 +41,4 @@ jobs:
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: npx nx affected -t lint test build
         env:
-          CI_READWRITE_ACCESS_TOKEN: ${{ secrets.CI_READWRITE_ACCESS_TOKEN }}
+          NX_CLOUD_ACCESS_TOKEN: ${{ secrets.CI_READWRITE_ACCESS_TOKEN }}
