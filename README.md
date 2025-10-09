@@ -65,3 +65,7 @@ We chose Nx as our workspace tool for several reasons:
    npm run start:frontend
    npm run start:backend
    ```
+
+## Note
+
+We have upgraded the voice agent to **Gemini** to improve user experience in another branch, but that version is not deployed yet. The current deployed version uses Google Cloud text-to-speech system.
