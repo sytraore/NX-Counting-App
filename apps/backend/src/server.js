@@ -12,6 +12,8 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Writer } from 'wav';
+import { PassThrough } from 'stream';
 //import { config } from 'dotenv'; // might move it before importing the db.js file
 
 // change from apps/backend/.env.local to .env.local to enable environment variables to be loaded on server
@@ -245,7 +247,11 @@ app.post("/register", async (req, res) => {
         });
 
       const data = await response.json();
-        res.json(data);
+      //res.json(data);
+      const audioBuffer = Buffer.from(data.audioContent, 'base64');
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.end(audioBuffer);
+
     } catch (error) {
         console.error('Server Error in Google Text-to-Speech:', error);
         res.status(500).json({ message: error.toString() });
