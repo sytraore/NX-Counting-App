@@ -3,7 +3,6 @@ export async function saveAnswers(pageType) {
 
   try {
     let answersKey;
-    let answersData;
 
     switch (pageType) {
       case 'baselineTraining':
@@ -44,7 +43,7 @@ export async function saveAnswers(pageType) {
       return;
     }
 
-    answersData = {
+    const answersData = {
        answers : answers,
        pageType: answersKey
     };

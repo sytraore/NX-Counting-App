@@ -186,6 +186,7 @@ const TouchTrainingPage = () => {
               const instruction = `Great job! Now draw a circle with your finger by following the yellow line.`;
               setTimeout(() => {
                 textToSpeech(instruction, () => {
+                  // Instruction completed
                 })
               }, 3000);
             }

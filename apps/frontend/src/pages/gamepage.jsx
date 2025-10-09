@@ -19,7 +19,7 @@ import {handleInteraction, handleNextClickTouchData} from '../helpers/imageTouch
 import { saveAnswers } from "../helpers/SaveAnswers";
 
 
-const gamePage = () => {
+const GamePage = () => {
   const { Data, audioData, selectedOption } = useAppData();
   const { page } = useParams();
   const currentPage = parseInt(page);
@@ -286,6 +286,7 @@ const gamePage = () => {
               const instruction = `Great job! Now draw a circle with your finger by following the yellow line.`;
               setTimeout(() => {
                 textToSpeech(instruction, () => {
+                  // Instruction completed
                 })
               }, 1000);
             }
@@ -414,4 +415,4 @@ const gamePage = () => {
   );
 };
 
-export default gamePage;
+export default GamePage;
