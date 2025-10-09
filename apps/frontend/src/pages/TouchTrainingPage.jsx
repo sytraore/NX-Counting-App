@@ -93,7 +93,7 @@ const TouchTrainingPage = () => {
       speakUtterance();
       spokenRef.current = true;
     }
-  }, [currentPage]);
+  }, [currentPage, speakUtterance]);
 
   useEffect(() => {
     if(!once.current){
@@ -185,9 +185,7 @@ const TouchTrainingPage = () => {
               });
               const instruction = `Great job! Now draw a circle with your finger by following the yellow line.`;
               setTimeout(() => {
-                textToSpeech(instruction, () => {
-                  // Instruction completed
-                })
+                textToSpeech(instruction);
               }, 3000);
             }
           } else {
@@ -322,6 +320,7 @@ const TouchTrainingPage = () => {
                   src={biscuit.img}
                   id={biscuit.id}
                   className="biscuits"
+                  alt=""
                   style={{
                     position: "absolute",
                     top: biscuit.top,
@@ -353,6 +352,7 @@ const TouchTrainingPage = () => {
                   src={biscuit.img}
                   id={biscuit.id}
                   className="biscuits"
+                  alt=""
                   style={{
                     position: "absolute",
                     top: biscuit.top,

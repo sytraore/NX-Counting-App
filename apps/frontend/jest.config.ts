@@ -7,5 +7,5 @@ export default {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageDirectory: 'test-output/jest/coverage',
-  passWithNoTests: true
+  passWithNoTests: true // added this line to pass the CI test run
 };

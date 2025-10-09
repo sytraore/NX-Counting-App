@@ -54,7 +54,7 @@ const GamePage = () => {
   const clickedCookies = useRef(new Set());
 
   // state to track mouse moevement
-  const [isDrawing, setIsDrawing] = useState(false);
+  //const [isDrawing, setIsDrawing] = useState(false);
 
   const handleAnimationFinish = () => {
     
@@ -285,9 +285,7 @@ const GamePage = () => {
               setstartAnimation(true);
               const instruction = `Great job! Now draw a circle with your finger by following the yellow line.`;
               setTimeout(() => {
-                textToSpeech(instruction, () => {
-                  // Instruction completed
-                })
+                textToSpeech(instruction);
               }, 1000);
             }
             return newCount;
@@ -355,6 +353,7 @@ const GamePage = () => {
                   src={biscuit.img}
                   id={biscuit.id}
                   className="biscuits"
+                  alt=""
                   style={{
                     position: "absolute",
                     top: biscuit.top,
@@ -386,6 +385,7 @@ const GamePage = () => {
                   src={biscuit.img}
                   id={biscuit.id}
                   className="biscuits"
+                  alt=""
                   style={{
                     position: "absolute",
                     top: biscuit.top,
