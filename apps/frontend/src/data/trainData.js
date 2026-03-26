@@ -90,7 +90,7 @@ const trainData = {
       ],
     },
     {
-      message:[" Cookie Monster has 2 cookies. Can Big Bird also have 2 cookies? Which tray has 2 cookies? Green? or purple?"],
+      message:["Cookie Monster has 2 cookies. Can Big Bird also have 2 cookies? Which tray has 2 cookies? Green? or purple?"],
       cookies: [
         {
           id: 1,
@@ -178,7 +178,7 @@ const trainData = {
       ],
     },
     {
-      message:[" Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or purple?"],
+      message:["Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or purple?"],
       cookies: [
         {
           id: 1,
@@ -345,7 +345,7 @@ const trainData = {
       ],
     },
     {
-      message:[" Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or purple?"],
+      message:["Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or purple?"],
       cookies: [
         {
           id: 1,

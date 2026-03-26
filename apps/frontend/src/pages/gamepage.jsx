@@ -14,11 +14,9 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import Animation from "../components/animation";
 import { useSound } from '../helpers/SoundContext';
 import { textToSpeech } from '../helpers/textToSpeech';
-import { textToSpeech2 } from '../helpers/textToSpeech2';
 import DialogBox from "../components/dialogBox";
 import {handleInteraction, handleNextClickTouchData} from '../helpers/imageTouchData';
 import { saveAnswers } from "../helpers/SaveAnswers";
-
 
 const GamePage = () => {
   const { Data, audioData, selectedOption } = useAppData();
@@ -99,7 +97,7 @@ const GamePage = () => {
       const utterance = `Cookie Monster has ${Data.pages[currentPage].cookies.length} cookies. Let's count together!`;
 
       setTimeout(() => {
-        textToSpeech2(utterance, () => {
+        textToSpeech(utterance, () => {
           setActiveCookieId(1)
         })
       }, 1000);
@@ -251,19 +249,19 @@ const GamePage = () => {
     setSelectedTray(trayType);
     // if the correct tray has been clicked
     if (trayType === "greenTray" && Data.pages[currentPage].greenTray[0].biscuits.length === Data.pages[currentPage].cookies.length) {
-      textToSpeech2("Green is correct, Good job!");
+      textToSpeech("Green is correct, Good job!");
     }
     else if (trayType === "purpleTray" && Data.pages[currentPage].purpleTray[0].biscuits.length === Data.pages[currentPage].cookies.length){
-      textToSpeech2("Purple is correct, Well done!");
+      textToSpeech("Purple is correct, Well done!");
     }
     // if the wrong tray has been clicked
     else if (trayType === "greenTray" && Data.pages[currentPage].greenTray[0].biscuits.length !== Data.pages[currentPage].cookies.length) {
       const explanation = `No, ${trayType} has ${Data.pages[currentPage].greenTray[0].biscuits.length} cookies. Try again!`;
-      textToSpeech2(explanation);
+      textToSpeech(explanation);
     }
     else{
       const explanation = `Wrong answer, ${trayType} has ${Data.pages[currentPage].purpleTray[0].biscuits.length} cookies. Try again!`;
-      textToSpeech2(explanation);
+      textToSpeech(explanation);
     }
     storeAnswer(currentPage, trayType);
 
@@ -280,7 +278,7 @@ const GamePage = () => {
         setCount(prevCount => {
             const newCount = prevCount + 1;
             // real time update of the cookie count
-            textToSpeech2(`${newCount}`);
+            textToSpeech(`${newCount}`);
             setActiveCookieId(cookieId);
             // if all the cookies have been clicked, show the animation
             if (newCount === totalCount) {
@@ -288,7 +286,7 @@ const GamePage = () => {
               setstartAnimation(true);
               const instruction = `Great job! Now draw a circle with your finger by following the yellow line.`;
               setTimeout(() => {
-                textToSpeech2(instruction);
+                textToSpeech(instruction);
               }, 1000);
             }
             return newCount;

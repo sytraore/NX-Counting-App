@@ -282,7 +282,7 @@ const saveToCache = async (items, itemType = 'items') => {
 
     // Small delay between calls to reduce back-to-back failures on preview model
     if (i < items.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 10000));
     }
   }
 
@@ -295,11 +295,21 @@ const preloadAll = async () => {
   const startTime = Date.now();
   console.log(' Starting TTS cache preload...');
 
-  const numbers = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  //const numbers = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
   const sentences = [
-    "Hello! Do you know who this is? That's right! It's Cookie Monster! What color is Cookie Monster? Blue! And here is Cookie Monster's blue tray.",
-    "Cookie Monster has 5 cookies. Let's count together!",
+    "Do you know who this is? That's right! It's Cookie Monster! What color is Cookie Monster? Blue! And here is Cookie Monster's blue tray.",
+    "He has some cookies. Some cookies have chocolate chips on them. Some are plain. Some are big. And some are small.",
+    "And this is Big Bird and his trays. What's the color of the left tray? Green! And what's the color of the right tray? Purple! Great job!",
+    "Now, you might not know this but Big Bird is a HUGE copycat and always wants to copy Cookie Monster. When Cookie Monster was looking for a snack, Big Bird saw Cookie Monster pick chocolate chip cookies.",
+    "So then when Big Bird chose his snack, he copied Cookie Monster and also picked chocolate chip cookies.",
+    "Now look! Cookie Monster has a chocolate cookie. Which of these trays also has a chocolate cookie? Green? or purple?",
+    "Remember, Big Bird always puts his cookies in one of these trays, either the green or the purple tray.",
+    "Cookie Monster has 2 cookies. Can Big Bird also have 2 cookies? Which tray has 2 cookies? Green? or purple?",
+    "Cookie Monster has 1 cookie. Can Big Bird also have 1 cookie? Which tray has 1 cookie? Green? or purple?",
+    "Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or purple?",
+    "Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or purple?",
     "Cookie Monster has 10 cookies. Let's count together!",
+    "Cookie Monster has 5 cookies. Let's count together!",
     "Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green or purple?",
     "Purple is correct, Well done!",
     "Green is correct, Well done!",
@@ -310,9 +320,9 @@ const preloadAll = async () => {
   //Preload sentences
   saveToCache(sentences, 'sentences');
   //wait for 4 seconds
-  await new Promise((resolve) => setTimeout(resolve, 4000));
+  //await new Promise((resolve) => setTimeout(resolve, 4000));
   // Preload numbers
-  saveToCache(numbers, 'numbers');
+  //saveToCache(numbers, 'numbers');
   
 
   const endTime = Date.now();
@@ -326,14 +336,14 @@ preloadAll();
 
 // convert a number to a word
 // return the input if it is not a number
-const numberToWord = (input) => {
-  const numberMap = {
-    '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five',
-    '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten'
-  };
+// const numberToWord = (input) => {
+//   const numberMap = {
+//     '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five',
+//     '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten'
+//   };
   
-  return numberMap[input] || input;
-};
+//   return numberMap[input] || input;
+// };
 
 
 // Gemini TTS API endpoint
@@ -344,7 +354,8 @@ app.post('/speak', async(req, res) => {
 
   // Convert number to words because the request is a number in string format
   // and the TTS API expects a word to work properly when reading a sequence of numbers
-  const inputText = numberToWord(String(req.body.text));
+  //const inputText = numberToWord(String(req.body.text));
+  const inputText = req.body.text;
   console.log('TTS Request received:', inputText);
 
   // check the cache first
@@ -367,7 +378,7 @@ app.post('/speak', async(req, res) => {
   try {
     console.log('Calling Gemini TTS API...');
     const response = await model.generateContent({
-      contents: [{parts: [{text: "Read in a calm and soothing tone: " + inputText}] }],
+      contents: [{parts: [{text: "Read in a calm and soothing tone to a class of preschoolers: " + inputText}] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig: {
