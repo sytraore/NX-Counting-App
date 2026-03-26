@@ -1,12 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { textToSpeech } from '../helpers/textToSpeech';
-
+import { textToSpeech2 } from '../helpers/textToSpeech2';
 // Canvas component to handle drawing on canvas
 function Canvas({ onAnimationFinish }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [circlePath, setCirclePath] = useState([]);
-
+  
   // Start drawing on canvas
   const startDrawing = (e) => {
     setIsDrawing(true);
@@ -121,11 +121,13 @@ function Canvas({ onAnimationFinish }) {
     
     if (isCircle()) {
       onAnimationFinish(); // Call the provided callback function when the animation finishes
+      //textToSpeech2('Great job!');
       console.log('Animation finished');
     }
     else{
       // Give feed back to the user
-      textToSpeech('Please draw a circle');
+      //textToSpeech('Please draw a circle');
+      textToSpeech2('Please draw a circle');
       // Clear the canvas if the drawing is not a circle
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
