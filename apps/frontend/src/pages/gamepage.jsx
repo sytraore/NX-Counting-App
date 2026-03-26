@@ -83,9 +83,8 @@ const GamePage = () => {
               setShowTray2(true);
 
               if (soundEnabled) {
-              const utterance = `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green or purple?`;
-              textToSpeech2(utterance);
-
+              const utterance = `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green? or Purple?`;
+              textToSpeech(utterance);
               }
               spokenRef2.current = true;
             }, 1000);
@@ -193,7 +192,7 @@ const GamePage = () => {
   
 
   const message = showMessage
-  ? `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green or purple?`
+  ? `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green? or Purple?`
   : `Cookie Monster has ${Data.pages[currentPage].cookies.length} cookies. Let's count together!`;
 
     
