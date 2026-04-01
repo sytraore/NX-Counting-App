@@ -11,14 +11,15 @@ import "bootstrap/dist/css/bootstrap.css";
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import Animation from "../components/animation";
-import { useSound } from '../helpers/SoundContext';
-import { textToSpeech } from '../helpers/textToSpeech';
-import DialogBox from "../components/dialogBox";
+import Animation from "../components/animation.jsx";
+import { useSound } from '../helpers/SoundContext.jsx';
+import { textToSpeech2 } from '../helpers/textToSpeech2';
+import { speechToText } from '../helpers/speechtoText';
+import DialogBox from "../components/dialogBox.jsx";
 import { handleInteraction, handleNextClickTouchData } from '../helpers/imageTouchData';
 import { saveAnswers } from "../helpers/SaveAnswers";
 
-const PrevGamePage = () => {
+const GamePage2 = () => {
   const { Data, audioData, selectedOption } = useAppData();
   const { page } = useParams();
   const currentPage = parseInt(page);
@@ -38,6 +39,12 @@ const PrevGamePage = () => {
   const [startAnimation, setstartAnimation] = useState(false);
   const [touchData, setTouchData] = useState([]);
   const clickedCookies = new Set();
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [sttError, setSttError] = useState(null);
+  const [spokenNumbers, setSpokenNumbers] = useState(new Set());
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const handleAnimationFinish = () => {
     setTimeout(() => {
@@ -63,7 +70,7 @@ const PrevGamePage = () => {
             setShowTray2(true);
             if (soundEnabled) {
               const utterance = `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green or purple?`;
-              textToSpeech(utterance);
+              textToSpeech2 (utterance);
             }
             spokenRef2.current = true;
           }, 1000);
@@ -76,7 +83,7 @@ const PrevGamePage = () => {
     if (soundEnabled) {
       const utterance = `Cookie Monster has ${Data.pages[currentPage].cookies.length} cookies. Let's count together!`;
       setTimeout(() => {
-        textToSpeech(utterance, () => {
+        textToSpeech2(utterance, () => {
           setActiveCookieId(1);
         });
       }, 1000);
@@ -87,6 +94,23 @@ const PrevGamePage = () => {
     if (!spokenRef.current) {
       speakUtterance();
       spokenRef.current = true;
+    }
+  }, [currentPage]);
+
+  // Reset speech-related state when changing pages
+  useEffect(() => {
+    setSpokenNumbers(new Set());
+    setTranscript('');
+    setSttError(null);
+    setIsRecording(false);
+    chunksRef.current = [];
+    if (mediaRecorderRef.current) {
+      try {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream?.getTracks()?.forEach(track => track.stop());
+      } catch (e) {
+        // ignore if already stopped
+      }
     }
   }, [currentPage]);
 
@@ -201,6 +225,73 @@ const PrevGamePage = () => {
     }
   };
 
+  // --- Speech to Text handling ---
+  const startRecording = async () => {
+    try {
+      setSttError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        try {
+          let recognizedText = '';
+          await speechToText(
+            blob,
+            (text) => {
+              recognizedText = text || '';
+              setTranscript(recognizedText);
+            },
+            (err) => setSttError(err)
+          );
+          // Parse numbers from transcript (digits and words), keep only 1..10
+          const wordToNum = {
+            one: '1', two: '2', three: '3', four: '4', five: '5',
+            six: '6', seven: '7', eight: '8', nine: '9', ten: '10'
+          };
+          const found = new Set(spokenNumbers);
+          const tokens = (recognizedText || '').toLowerCase().split(/[^a-z0-9]+/);
+          tokens.forEach(tok => {
+            if (!tok) return;
+            if (!isNaN(tok)) {
+              const num = parseInt(tok, 10);
+              if (num >= 1 && num <= 10) found.add(String(num));
+            } else if (wordToNum[tok]) {
+              found.add(wordToNum[tok]);
+            }
+          });
+          setSpokenNumbers(found);
+        } catch (err) {
+          console.error('STT parse error:', err);
+          setSttError('Could not process speech. Please try again.');
+        }
+        chunksRef.current = [];
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Mic error:', err);
+      setSttError('Microphone access failed. Please allow mic and try again.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+    }
+  };
+
   const handlePreviousPage = () => {
     if (currentPage > 0) {
       setCookieCount(0);
@@ -248,13 +339,31 @@ const PrevGamePage = () => {
               {message}
             </div>
           </div>
+          <div className="record-controls">
+            <button
+              className="btn btn-primary me-2"
+              onClick={isRecording ? stopRecording : startRecording}
+            >
+              {isRecording ? 'Stop Speaking' : 'Start Speaking'}
+            </button>
+            {transcript && (
+              <div className="mt-2 small text-muted">
+                Transcript: {transcript}
+              </div>
+            )}
+            {sttError && (
+              <div className="mt-2 text-danger small">
+                {sttError}
+              </div>
+            )}
+          </div>
           <div className="cookieContainer position-absolute">
             {Data.pages[currentPage].cookies.map((cookie) => (
               <img
                 key={cookie.id}
                 src={cookie.img}
                 id={cookie.id}
-                className={`${activeCookieId === cookie.id ? "circle" : ""} ${activeCookieId === cookie.id && isWiggling ? "wiggle" : ""}`}
+                className={`${activeCookieId === cookie.id ? "circle" : ""} ${activeCookieId === cookie.id && isWiggling ? "wiggle" : ""} ${spokenNumbers.has(String(cookie.id)) ? "wiggle-glow" : ""}`}
                 alt={`Cookie ${cookie.id}`}
                 onClick={() => moveCircle(cookie.id.toString(), currentPage)}
                 style={{
@@ -375,4 +484,4 @@ const PrevGamePage = () => {
   );
 };
 
-export default PrevGamePage;
+export default GamePage2;

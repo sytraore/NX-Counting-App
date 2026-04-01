@@ -122,7 +122,8 @@ function Home() {
               </div>
 
               <div className = "rows">
-                <li><button className={`menu-button ${clickedButtons.includes(8) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(8, "/game/touch2/play/0")}>Prev Touch Task</button></li>
+                {/* <li><button className={`menu-button ${clickedButtons.includes(8) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(8, "/game/touch2/play/0")}>Prev Touch Task</button></li> */}
+                <li><button className={`menu-button ${clickedButtons.includes(8) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(8, "/game/touch2/play/0")}>Speech Task</button></li>
                 <li><button className={`menu-button ${clickedButtons.includes(10) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(9, "/game/practice/0")}>Practice Counting</button></li>
               </div>
 
@@ -161,7 +162,8 @@ function Home() {
               </div>
 
               <div className = "rows">
-                <li><button className={`menu-button ${clickedButtons.includes(4) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(4, "/game/touch2/play/0")}>Prev Touch Task</button></li>
+                {/* <li><button className={`menu-button ${clickedButtons.includes(4) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(4, "/game/touch2/play/0")}>Prev Touch Task</button></li> */}
+                <li><button className={`menu-button ${clickedButtons.includes(4) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(4, "/game/touch2/play/0")}>Speech Task</button></li>
                 <li><button className={`menu-button ${clickedButtons.includes(10) ? 'clicked' : ''}`} onClick={() => handleMenubtnClick(9, "/game/practice/0")}>Practice Counting</button></li>
               </div>
 
