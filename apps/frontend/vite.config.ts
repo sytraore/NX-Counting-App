@@ -37,6 +37,11 @@ export default defineConfig(() => ({
         target: 'http://localhost:8001',
         changeOrigin: true,
       },
+      '/live': {
+        target: 'http://localhost:8001',
+        ws: true,
+        changeOrigin: true,
+      },
     }
   },
   preview:{

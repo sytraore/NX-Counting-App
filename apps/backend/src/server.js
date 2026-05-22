@@ -1,6 +1,8 @@
 import { config } from 'dotenv';
 import {connectToDb} from './db.js';
+import http from 'http';
 import express from 'express';
+import { attachLiveAgent } from './liveAgent.js';
 import './database/userDetails.js';
 import './database/touchDetails.js';
 import './database/trainingTouchDetails.js';
@@ -494,11 +496,35 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
 
   try {
     const audioPart = bufferToGenerativePart(req.file.buffer, req.file.mimetype);
-    const prompt = "Transcribe this audio.";
+    const expectedNumber = parseInt(req.body.expectedNumber || '', 10);
+    const expectedClause = Number.isFinite(expectedNumber) && expectedNumber >= 1 && expectedNumber <= 10
+      ? `The expected next number is ${expectedNumber}. Favor that number if it is spoken.`
+      : '';
+    const prompt = `
+You are transcribing a short audio chunk from a child counting cookies.
+Return ONLY numbers that are explicitly audible in this chunk.
+Do NOT infer or auto-complete a counting sequence.
+${expectedClause}
+
+Strict rules:
+- Output must be plain text only.
+- Allowed tokens: "1" to "10" only.
+- Return at most one number token.
+- If uncertain, return an empty string.
+- Do not add explanations, labels, punctuation, or markdown.
+`;
     
     const result = await model2.generateContent([prompt, audioPart]);
     const response = result.response;
-    const transcript = response.text();
+    const rawTranscript = response.text() || '';
+
+    // Safety filter on the server: keep only number tokens 1..10.
+    const cleanedTokens = rawTranscript
+      .replace(/\n/g, ' ')
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => /^(10|[1-9])$/.test(token));
+    const transcript = cleanedTokens.join(' ');
     
     console.log(`Transcription: ${transcript}`);
     res.status(200).json({ transcript: transcript });
@@ -520,11 +546,14 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
+const httpServer = http.createServer(app);
+attachLiveAgent(httpServer, GEMINI_API_KEY);
+
 connectToDb()
   .then(() => {
     console.log("Successfully Connected to DB");
 
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log("Server listening on port " + PORT);
     });
   })

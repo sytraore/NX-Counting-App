@@ -30,5 +30,9 @@
         }
       }
     }
+  },
+  "dependencies": {
+    "@google/genai": "^2.6.0",
+    "ws": "^8.18.0"
   }
 }

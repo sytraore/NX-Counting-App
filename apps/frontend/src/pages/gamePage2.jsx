@@ -13,8 +13,7 @@ import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import Animation from "../components/animation.jsx";
 import { useSound } from '../helpers/SoundContext.jsx';
-import { textToSpeech2 } from '../helpers/textToSpeech2';
-import { speechToText } from '../helpers/speechtoText';
+import { useLiveAgent } from '../helpers/useLiveAgent';
 import DialogBox from "../components/dialogBox.jsx";
 import { handleInteraction, handleNextClickTouchData } from '../helpers/imageTouchData';
 import { saveAnswers } from "../helpers/SaveAnswers";
@@ -39,12 +38,66 @@ const GamePage2 = () => {
   const [startAnimation, setstartAnimation] = useState(false);
   const [touchData, setTouchData] = useState([]);
   const clickedCookies = new Set();
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [sttError, setSttError] = useState(null);
   const [spokenNumbers, setSpokenNumbers] = useState(new Set());
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
+  const [expectedNumber, setExpectedNumber] = useState(1);
+  const expectedNumberRef = useRef(1);
+  const targetCount = Data.pages[currentPage].cookies.length;
+
+  useEffect(() => {
+    expectedNumberRef.current = expectedNumber;
+  }, [expectedNumber]);
+
+  const applySpokenNumber = (number) => {
+    const currentExpected = expectedNumberRef.current;
+
+    if (number < currentExpected) {
+      return;
+    }
+    if (number > currentExpected) {
+      return;
+    }
+
+    setSpokenNumbers((prev) => {
+      const updated = new Set(prev);
+      updated.add(String(number));
+      return updated;
+    });
+    setActiveCookieId(number);
+    setIsWiggling(true);
+    setTimeout(() => setIsWiggling(false), 700);
+
+    if (number >= targetCount) {
+      setExpectedNumber(targetCount + 1);
+      expectedNumberRef.current = targetCount + 1;
+      return;
+    }
+
+    setExpectedNumber(number + 1);
+    expectedNumberRef.current = number + 1;
+  };
+
+  const {
+    connect: connectAgent,
+    disconnect: disconnectAgent,
+    error: agentError,
+    agentTranscript,
+    isConnected: isAgentConnected,
+    isConnecting: isAgentConnecting,
+  } = useLiveAgent({
+    targetCount,
+    soundEnabled,
+    onCookieCounted: applySpokenNumber,
+    onCountingComplete: () => {
+      setActiveCookieId(null);
+      setstartAnimation(true);
+    },
+  });
+
+  useEffect(() => {
+    if (showMessage) {
+      disconnectAgent();
+    }
+  }, [showMessage, disconnectAgent]);
 
   const handleAnimationFinish = () => {
     setTimeout(() => {
@@ -68,10 +121,6 @@ const GamePage2 = () => {
             setShowMessage(true);
             setShowBigBird(true);
             setShowTray2(true);
-            if (soundEnabled) {
-              const utterance = `Can Big Bird also have ${Data.pages[currentPage].cookies.length} cookies? Which tray has ${Data.pages[currentPage].cookies.length} cookies? Green or purple?`;
-              textToSpeech2 (utterance);
-            }
             spokenRef2.current = true;
           }, 1000);
         }
@@ -79,40 +128,21 @@ const GamePage2 = () => {
     }, 1000);
   };
 
-  const speakUtterance = () => {
-    if (soundEnabled) {
-      const utterance = `Cookie Monster has ${Data.pages[currentPage].cookies.length} cookies. Let's count together!`;
-      setTimeout(() => {
-        textToSpeech2(utterance, () => {
-          setActiveCookieId(1);
-        });
-      }, 1000);
-    }
-  };
-
   useEffect(() => {
-    if (!spokenRef.current) {
-      speakUtterance();
-      spokenRef.current = true;
-    }
-  }, [currentPage]);
-
-  // Reset speech-related state when changing pages
-  useEffect(() => {
+    disconnectAgent();
     setSpokenNumbers(new Set());
-    setTranscript('');
-    setSttError(null);
-    setIsRecording(false);
-    chunksRef.current = [];
-    if (mediaRecorderRef.current) {
-      try {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream?.getTracks()?.forEach(track => track.stop());
-      } catch (e) {
-        // ignore if already stopped
-      }
+    setExpectedNumber(1);
+    expectedNumberRef.current = 1;
+    setActiveCookieId(0);
+    spokenRef.current = false;
+    spokenRef2.current = false;
+  }, [currentPage, disconnectAgent]);
+
+  useEffect(() => {
+    if (isAgentConnected && expectedNumberRef.current === 1) {
+      setActiveCookieId(1);
     }
-  }, [currentPage]);
+  }, [isAgentConnected]);
 
   useEffect(() => {
     if (!once.current) {
@@ -207,6 +237,7 @@ const GamePage2 = () => {
   };
 
   const handleNextPage = () => {
+    disconnectAgent();
     if (currentPage < 3) {
       setCookieCount(0);
       setShowTray2(false);
@@ -225,74 +256,8 @@ const GamePage2 = () => {
     }
   };
 
-  // --- Speech to Text handling ---
-  const startRecording = async () => {
-    try {
-      setSttError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        try {
-          let recognizedText = '';
-          await speechToText(
-            blob,
-            (text) => {
-              recognizedText = text || '';
-              setTranscript(recognizedText);
-            },
-            (err) => setSttError(err)
-          );
-          // Parse numbers from transcript (digits and words), keep only 1..10
-          const wordToNum = {
-            one: '1', two: '2', three: '3', four: '4', five: '5',
-            six: '6', seven: '7', eight: '8', nine: '9', ten: '10'
-          };
-          const found = new Set(spokenNumbers);
-          const tokens = (recognizedText || '').toLowerCase().split(/[^a-z0-9]+/);
-          tokens.forEach(tok => {
-            if (!tok) return;
-            if (!isNaN(tok)) {
-              const num = parseInt(tok, 10);
-              if (num >= 1 && num <= 10) found.add(String(num));
-            } else if (wordToNum[tok]) {
-              found.add(wordToNum[tok]);
-            }
-          });
-          setSpokenNumbers(found);
-        } catch (err) {
-          console.error('STT parse error:', err);
-          setSttError('Could not process speech. Please try again.');
-        }
-        chunksRef.current = [];
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Mic error:', err);
-      setSttError('Microphone access failed. Please allow mic and try again.');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-    }
-  };
-
   const handlePreviousPage = () => {
+    disconnectAgent();
     if (currentPage > 0) {
       setCookieCount(0);
       setShowTray2(false);
@@ -339,24 +304,32 @@ const GamePage2 = () => {
               {message}
             </div>
           </div>
-          <div className="record-controls">
-            <button
-              className="btn btn-primary me-2"
-              onClick={isRecording ? stopRecording : startRecording}
-            >
-              {isRecording ? 'Stop Speaking' : 'Start Speaking'}
-            </button>
-            {transcript && (
-              <div className="mt-2 small text-muted">
-                Transcript: {transcript}
+          {!showMessage && (
+            <div className="record-controls">
+              <button
+                className={`stt-control-button ${
+                  isAgentConnected ? 'stt-control-button-stop' : 'stt-control-button-start'
+                }`}
+                disabled={isAgentConnecting}
+                onClick={isAgentConnected ? disconnectAgent : connectAgent}
+              >
+                {isAgentConnecting
+                  ? 'Connecting…'
+                  : isAgentConnected
+                    ? 'Disconnect Agent'
+                    : 'Connect Agent'}
+              </button>
+              <div className="stt-feedback-line">
+                Next number: {Math.min(expectedNumber, targetCount)}
               </div>
-            )}
-            {sttError && (
-              <div className="mt-2 text-danger small">
-                {sttError}
-              </div>
-            )}
-          </div>
+              {agentTranscript && (
+                <div className="stt-feedback-line">Agent: {agentTranscript}</div>
+              )}
+              {agentError && (
+                <div className="stt-error-line">{agentError}</div>
+              )}
+            </div>
+          )}
           <div className="cookieContainer position-absolute">
             {Data.pages[currentPage].cookies.map((cookie) => (
               <img
@@ -365,11 +338,11 @@ const GamePage2 = () => {
                 id={cookie.id}
                 className={`${activeCookieId === cookie.id ? "circle" : ""} ${activeCookieId === cookie.id && isWiggling ? "wiggle" : ""} ${spokenNumbers.has(String(cookie.id)) ? "wiggle-glow" : ""}`}
                 alt={`Cookie ${cookie.id}`}
-                onClick={() => moveCircle(cookie.id.toString(), currentPage)}
                 style={{
                   position: "absolute",
                   top: cookie.top,
                   left: cookie.left,
+                  pointerEvents: showMessage ? 'auto' : 'none',
                 }}
               />
             ))}
