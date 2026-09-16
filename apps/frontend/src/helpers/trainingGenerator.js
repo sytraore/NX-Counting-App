@@ -84,13 +84,13 @@ export function generateTrainingData() {
     const plural = cookieAmount > 1 ? "s" : "";
     pages.push({
       message: [
-        `Cookie Monster has ${cookieAmount} cookie${plural}. Can Big Bird also have ${cookieAmount} cookie${plural}? Which tray has ${cookieAmount} cookie${plural}? Green? or purple?`
+        `Cookie Monster has ${cookieAmount} cookie${plural}. Can Big Bird also have ${cookieAmount} cookie${plural}? Which tray has ${cookieAmount} cookie${plural}? Green? or Purple?`
       ],
       message1: [
         `Cookie Monster has ${cookieAmount} cookie${plural}. Let's count together!`
       ],
       message2: [
-        `Can Big Bird also have ${cookieAmount} cookie${plural}? Which tray has ${cookieAmount} cookie${plural}? Green? or purple?`
+        `Can Big Bird also have ${cookieAmount} cookie${plural}? Which tray has ${cookieAmount} cookie${plural}? Green? or Purple?`
       ],
       cookies: leftTrayCookies.map((cookie, index) => ({
         id: index,

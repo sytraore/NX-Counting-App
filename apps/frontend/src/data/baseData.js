@@ -10,7 +10,7 @@ import shellCookie from "../assests/seashellCookie.png";
 const baseData ={
     pages: [
         {
-            message:[" Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or purple?"],
+            message:["Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or Purple?"],
             cookies: [
               {
                 id: 1,
@@ -177,7 +177,7 @@ const baseData ={
             ],
           },
           {
-            message:[" Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or purple?"],
+            message:["Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or Purple?"],
             cookies: [
               {
                 id: 1,
@@ -314,7 +314,7 @@ const baseData ={
             ],
           },
           {
-            message:[" Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or purple?"],
+            message:["Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or Purple?"],
             cookies: [
               {
                 id: 1,
@@ -451,7 +451,7 @@ const baseData ={
             ],
           },
           {
-            message:[" Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or purple?"],
+            message:["Cookie Monster has 10 cookies. Can Big Bird also have 10 cookies? Which tray has 10 cookies? Green? or Purple?"],
             cookies: [
               {
                 id: 1,
@@ -618,7 +618,7 @@ const baseData ={
             ],
           },
           {
-            message:[" Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or purple?"],
+            message:["Cookie Monster has 5 cookies. Can Big Bird also have 5 cookies? Which tray has 5 cookies? Green? or Purple?"],
             cookies: [
               {
                 id: 1,

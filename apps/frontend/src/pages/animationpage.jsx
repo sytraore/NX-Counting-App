@@ -107,7 +107,7 @@ const AnimationPage = () => {
   }, []);
 
   const message = showMessage
-    ? `Can Big Bird also have ${animationData.pages[currentPage].cookies.length} cookies? Which tray has ${animationData.pages[currentPage].cookies.length} cookies? Green? or purple?`
+    ? `Can Big Bird also have ${animationData.pages[currentPage].cookies.length} cookies? Which tray has ${animationData.pages[currentPage].cookies.length} cookies? Green? or Purple?`
     : `Cookie Monster has ${animationData.pages[currentPage].cookies.length} cookies. Let's count together!`;
 
   useEffect(() => {

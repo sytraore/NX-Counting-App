@@ -20,7 +20,9 @@ export async function textToSpeech(utterance, onSpeechEnd) {
 
     console.log('Sending request with data:', requestData);
 
-    const response = await fetch('/speech/synthesize', {
+    // /speak is the only TTS endpoint: cached + rate-limited Gemini synthesis.
+    // (/speech/synthesize was removed from the backend.)
+    const response = await fetch('/speak', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -32,7 +34,11 @@ export async function textToSpeech(utterance, onSpeechEnd) {
     });
 
     console.log('Response status:', response.status);
-    
+
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`);
+    }
+
     // expected response is a blob
     const audioBlob = await response.blob();
     const audioUrl = URL.createObjectURL(audioBlob);
